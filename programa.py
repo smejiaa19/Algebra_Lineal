@@ -1,6 +1,36 @@
 import re  # Importamos modulo de expresiones regulares
+import unicodedata
+
 from fractions import Fraction  # Para mantener exactitud con enteros y fracciones
 
+
+def normalizar_ecuacion(equation: str) -> str:
+    """
+    Convierte simbolos unicode a ASCII para operacion con Fraction
+    ejemplos
+    − → -
+    × → *
+    ÷ → /
+    ０１２３ → 0123
+    Fullwidth parentheses → ()
+    """
+    equation = unicodedata.normalize('NFKC', equation)
+
+    replacements = {
+        '−': '-',
+        '×': '*',
+        '÷': '/',  
+        '⁺': '+',
+        '⁻': '-',
+        '∙': '*',
+        '⋅': '*',
+    }
+    equation = re.sub(r'[\u200B\u200C\u200D\u2060]', '', equation)
+
+    for old, new in replacements.items():
+        equation = equation.replace(old, new)
+
+    return equation.strip()
 
 def convertir_ecuacion(ecuacion, variables):
     """Aqui se realiza el proceso de convertir la ecuacion de tipo:
@@ -8,8 +38,9 @@ def convertir_ecuacion(ecuacion, variables):
     """
 
     ecuacion = ecuacion.replace(" ", "")  # Buscamos espacios dentro de toda la ecuacion y los sustituimos
+    ecuacion = normalizar_ecuacion(ecuacion)
     ecuacion_separada = ecuacion.split("=")  # Para asi separar del termino independiente y las variables
-
+    
     term_independiente = Fraction(ecuacion_separada[1])  # Aqui basicamente tomamos la ecuacion (que es un string) y decimos que la variable
     coeficientes = [Fraction(0)] * len(variables)  # Una lista de caracteres | para los coeficientes de cada variable
 
@@ -36,7 +67,7 @@ def convertir_ecuacion(ecuacion, variables):
         elif coeficiente == "-":
             coeficiente = Fraction(-1)
         else:
-            coeficiente = Fraction(coeficiente) 
+            coeficiente = Fraction(coeficiente)
 
         index_var = variables.index(variable)
         coeficientes[index_var] = coeficiente
@@ -46,12 +77,14 @@ def convertir_ecuacion(ecuacion, variables):
 
 def crear_matriz():
     n_incog = int(input("Ingrese el numero de incognitas: "))
-    print("Ingrese las incognitas")
+    print("Ingrese las incognitas (uso: separar con espacios eg: a b c)")
+
     variables = input().split()
 
     matriz = []
     print("Ingrese cada ecuacion")
     for i in range(n_incog):
+        print("ecuacion: ",i+1)
         ecuacion = input()
         fila = convertir_ecuacion(ecuacion, variables)
         matriz.append(fila)
@@ -95,7 +128,8 @@ def eliminacion_filas(matriz, tolerancia=1e-12):
 
         print(f"Matriz después del paso {i + 1}:")
         for fila in matriz:
-            print(fila)
+            #print(fila)
+            print([f"{f.numerator}/{f.denominator}" if f.denominator != 1 else f"{f.numerator}" for f in fila])
 
     # Sustitución hacia atrás
     soluciones = [Fraction(0)] * n
